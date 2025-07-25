@@ -38,24 +38,26 @@ func reapLoop(interval time.Duration, cache *Cache) {
 	}
 }
 
-func NewCache(interval time.Duration) *Cache {
+func NewCache(msInterval int) *Cache {
 	cache := new(Cache)
-	go reapLoop(interval, cache)
+	cache.table = make(map[string]cacheEntry)
+	go reapLoop(time.Duration(msInterval)*time.Millisecond, cache)
 	return cache
 }
 
-func (c *Cache) Get(key string) []byte {
+func (c *Cache) Get(key string) ([]byte, bool) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	val, ok := c.table[key]
 	if ok {
-		return val.val
+		return val.val, true
 	}
-	return nil
+	return nil, false
 }
 
 func (c *Cache) Add(key string, val []byte) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	c.table[key] = cacheEntry{createdAt: time.Now(), val: val}
+
 }

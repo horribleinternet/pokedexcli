@@ -3,7 +3,9 @@ package pokeapi
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"pokedexcli/internal/pokecache"
 )
 
 type locationAreas struct {
@@ -17,20 +19,21 @@ type locationAreas struct {
 }
 
 const LocationStartURL = "https://pokeapi.co/api/v2/location-area/"
+const cachemsInterval = 5000
+
+var cache *pokecache.Cache
+
+func init() {
+	cache = pokecache.NewCache(cachemsInterval)
+}
 
 func LocationPage(url string) (locations []string, nextUrl string, prevUrl string, err error) {
-	res, err := http.Get(url)
+	bytes, err := getBuffer(url)
 	if err != nil {
 		return []string{}, "", "", err
 	}
-	defer res.Body.Close()
-	if res.StatusCode/100 != 2 {
-		return []string{}, "", "", fmt.Errorf("got status code %d", res.StatusCode)
-	}
-	decoder := json.NewDecoder(res.Body)
 	var page locationAreas
-
-	if err := decoder.Decode(&page); err != nil {
+	if err := json.Unmarshal(bytes, &page); err != nil {
 		return []string{}, "", "", err
 	}
 	if page.Next == nil {
@@ -48,4 +51,25 @@ func LocationPage(url string) (locations []string, nextUrl string, prevUrl strin
 		locations[i] = result.Name
 	}
 	return locations, nextUrl, prevUrl, nil
+}
+
+func getBuffer(url string) ([]byte, error) {
+	bytes, ok := cache.Get(url)
+	if ok {
+		return bytes, nil
+	}
+	res, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	if res.StatusCode/100 != 2 {
+		return nil, fmt.Errorf("got status code %d", res.StatusCode)
+	}
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	cache.Add(url, data)
+	return data, nil
 }

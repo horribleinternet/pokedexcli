@@ -17,11 +17,12 @@ type cliCommand struct {
 type config struct {
 	nextURL string
 	prevURL string
+	param1  string
 }
 
 var commands map[string]cliCommand
 
-func initCommands() {
+func init() {
 	commands = map[string]cliCommand{
 		"exit": {
 			name:        "exit",
@@ -43,11 +44,15 @@ func initCommands() {
 			description: "Displays the previous 20 locations",
 			callback:    commandMapb,
 		},
+		"explore": {
+			name:        "explore",
+			description: "Lists Pokemon in an area",
+			callback:    commandExplore,
+		},
 	}
 }
 
 func main() {
-	initCommands()
 	scanner := bufio.NewScanner(os.Stdin)
 	prompt := "Pokedex > "
 	fmt.Print(prompt)
@@ -56,6 +61,9 @@ func main() {
 		input := cleanInput(scanner.Text())
 		comm, ok := commands[input[0]]
 		if ok {
+			if len(input) > 1 {
+				context.param1 = input[1]
+			}
 			if err := comm.callback(&context); err != nil {
 				fmt.Printf("Error: %v", err)
 			}
@@ -96,6 +104,25 @@ func commandMapb(context *config) error {
 		return nil
 	}
 	return printMap(context.prevURL, context)
+}
+
+func commandExplore(context *config) error {
+	if context.param1 == "" {
+		return fmt.Errorf("explore requires an area name")
+	}
+	pokemons, err := pokeapi.LocationPokemon(context.param1)
+	if err != nil {
+		fmt.Println(context.param1, "is not a valid area")
+		context.param1 = ""
+		return nil
+	}
+	fmt.Printf("Exploring %s...\n", context.param1)
+	fmt.Println("Found Pokemon:")
+	for _, name := range pokemons {
+		fmt.Println(" -", name)
+	}
+	context.param1 = ""
+	return nil
 }
 
 func printMap(url string, context *config) error {

@@ -57,6 +57,11 @@ func init() {
 			description: "Attempts to catch a Pokemon",
 			callback:    commandCatch,
 		},
+		"inspect": {
+			name:        "inspect",
+			description: "Show information of a Pokemon in the Pokedex",
+			callback:    commandInspect,
+		},
 	}
 }
 
@@ -73,7 +78,7 @@ func main() {
 				context.param1 = input[1]
 			}
 			if err := comm.callback(&context); err != nil {
-				fmt.Printf("Error: %v", err)
+				fmt.Printf("Error: %v\n", err)
 			}
 		} else {
 			fmt.Println("Unknown command")
@@ -141,7 +146,7 @@ func commandCatch(context *config) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Throwing a Pokeball at", context.param1, "...")
+	fmt.Printf("Throwing a Pokeball at %s...\n", context.param1)
 	if pokeapi.TryCatchPokemon(pokemon) {
 		fmt.Println(context.param1, "was caught!")
 		pokedex[pokemon.Name] = pokemon
@@ -150,6 +155,40 @@ func commandCatch(context *config) error {
 	}
 	context.param1 = ""
 	return nil
+}
+
+func commandInspect(context *config) error {
+	if context.param1 == "" {
+		return fmt.Errorf("catch requires a Pokemon name to catch")
+	}
+	pokemon, ok := pokedex[context.param1]
+	if !ok {
+		fmt.Println("You have not caught", context.param1)
+	} else {
+		printPokemon(pokemon)
+	}
+	context.param1 = ""
+	return nil
+}
+
+func printPokemon(pokemon pokeapi.PokemonInfo) {
+	fmt.Println("Height:", pokemon.Height)
+	fmt.Println("Weight:", pokemon.Weight)
+	fmt.Println("Stats:")
+	fmt.Println("  -hp:", pokemon.Hp)
+	fmt.Println("  -attack:", pokemon.Attack)
+	fmt.Println("  -defense:", pokemon.Defense)
+	fmt.Println("  -special-attack:", pokemon.SpecialAttack)
+	fmt.Println("  -special-defense:", pokemon.SpecialDefense)
+	fmt.Println("  -speed:", pokemon.Speed)
+	if len(pokemon.Types) > 1 {
+		fmt.Println("Types:")
+	} else {
+		fmt.Println("Type:")
+	}
+	for _, ptype := range pokemon.Types {
+		fmt.Println("  -", ptype)
+	}
 }
 
 func printMap(url string, context *config) error {

@@ -62,6 +62,11 @@ func init() {
 			description: "Show information of a Pokemon in the Pokedex",
 			callback:    commandInspect,
 		},
+		"pokedex": {
+			name:        "pokedex",
+			description: "Shows the Pokemon you have caught",
+			callback:    commandPokedex,
+		},
 	}
 }
 
@@ -188,6 +193,22 @@ func printPokemon(pokemon pokeapi.PokemonInfo) {
 	}
 	for _, ptype := range pokemon.Types {
 		fmt.Println("  -", ptype)
+	}
+}
+
+func commandPokedex(context *config) error {
+	if len(pokedex) == 0 {
+		fmt.Println("Your Pokedex is empty!")
+	} else {
+		printPokedex()
+	}
+	return nil
+}
+
+func printPokedex() {
+	fmt.Println("Your Pokedex:")
+	for key, _ := range pokedex {
+		fmt.Println(" -", key)
 	}
 }
 

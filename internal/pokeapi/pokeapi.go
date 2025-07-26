@@ -446,6 +446,7 @@ type PokemonInfo struct {
 	name   string
 	height int
 	weight int
+	experience int
 	pokemonStats
 	types []string
 }
@@ -488,7 +489,26 @@ func DescribePokemon(name string) (PokemonInfo, error) {
 		return PokemonInfo{}, err
 	}
 	keepInfo := PokemonInfo{name: info.Name, height: info.Height, weight: info.Weight}
-
+	for _, stat := range info.Stats {
+		switch stat.Stat.Name {
+		case "hp":
+			keepInfo.hp = stat.BaseStat
+		case "attack":
+			keepInfo.attack = stat.BaseStat
+		case "defense":
+			keepInfo.defense = stat.BaseStat
+		case "special-attack":
+			keepInfo.specialAttack = stat.BaseStat
+		case "special-defense":
+			keepInfo.specialDefense = stat.BaseStat
+		case "speed":
+			keepInfo.speed = stat.BaseStat
+		}
+	}
+	keepInfo.types = make([]string)
+	for _, type := range info.Types {
+		keepInfo.types = 
+	}
 }
 
 func LocationPage(url string) (locations []string, nextUrl string, prevUrl string, err error) {

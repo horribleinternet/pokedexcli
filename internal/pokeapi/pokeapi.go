@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"pokedexcli/internal/pokecache"
 )
@@ -434,21 +435,21 @@ type pokemon struct {
 	Weight int `json:"weight"`
 }
 
-type pokemonStats struct {
-	hp             int
-	attack         int
-	defense        int
-	specialAttack  int
-	specialDefense int
-	speed          int
+type PokemonStats struct {
+	Hp             int
+	Attack         int
+	Defense        int
+	SpecialAttack  int
+	SpecialDefense int
+	Speed          int
 }
 type PokemonInfo struct {
-	name   string
-	height int
-	weight int
-	experience int
-	pokemonStats
-	types []string
+	Name       string
+	Height     int
+	Weight     int
+	Experience int
+	PokemonStats
+	Types []string
 }
 
 const LocationStartURL = "https://pokeapi.co/api/v2/location-area/"
@@ -478,8 +479,17 @@ func LocationPokemon(area string) ([]string, error) {
 	return pokemons, nil
 }
 
+const pokemonDifficultyOffset = 40                           //lowest base experience of any Pokemon is 40
+const pokemonDifficultyLimit = 256 - pokemonDifficultyOffset // highest base experience of any pokemon is 255, 256 leaves space the most difficult to win
+
+func TryCatchPokemon(pokemon PokemonInfo) bool {
+	pokemonDifficulty := pokemon.Experience - pokemonDifficultyOffset
+	roll := rand.Intn(pokemonDifficultyLimit + 1) //half-open interval
+	return roll > pokemonDifficulty               //it's possible to not catch the weakest, and possible to catch the strongest
+}
+
 func DescribePokemon(name string) (PokemonInfo, error) {
-	url := LocationStartURL + name + "/"
+	url := pokemonURL + name + "/"
 	bytes, err := getBuffer(url)
 	if err != nil {
 		return PokemonInfo{}, err
@@ -488,27 +498,28 @@ func DescribePokemon(name string) (PokemonInfo, error) {
 	if err := json.Unmarshal(bytes, &info); err != nil {
 		return PokemonInfo{}, err
 	}
-	keepInfo := PokemonInfo{name: info.Name, height: info.Height, weight: info.Weight}
+	keepInfo := PokemonInfo{Name: info.Name, Height: info.Height, Weight: info.Weight, Experience: info.BaseExperience}
 	for _, stat := range info.Stats {
 		switch stat.Stat.Name {
 		case "hp":
-			keepInfo.hp = stat.BaseStat
+			keepInfo.Hp = stat.BaseStat
 		case "attack":
-			keepInfo.attack = stat.BaseStat
+			keepInfo.Attack = stat.BaseStat
 		case "defense":
-			keepInfo.defense = stat.BaseStat
+			keepInfo.Defense = stat.BaseStat
 		case "special-attack":
-			keepInfo.specialAttack = stat.BaseStat
+			keepInfo.SpecialAttack = stat.BaseStat
 		case "special-defense":
-			keepInfo.specialDefense = stat.BaseStat
+			keepInfo.SpecialDefense = stat.BaseStat
 		case "speed":
-			keepInfo.speed = stat.BaseStat
+			keepInfo.Speed = stat.BaseStat
 		}
 	}
-	keepInfo.types = make([]string)
-	for _, type := range info.Types {
-		keepInfo.types = 
+	keepInfo.Types = make([]string, 1)
+	for _, ptype := range info.Types {
+		keepInfo.Types = append(keepInfo.Types, ptype.Type.Name)
 	}
+	return keepInfo, nil
 }
 
 func LocationPage(url string) (locations []string, nextUrl string, prevUrl string, err error) {

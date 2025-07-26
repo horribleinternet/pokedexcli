@@ -20,9 +20,12 @@ type config struct {
 	param1  string
 }
 
+var pokedex map[string]pokeapi.PokemonInfo
+
 var commands map[string]cliCommand
 
 func init() {
+	pokedex = make(map[string]pokeapi.PokemonInfo)
 	commands = map[string]cliCommand{
 		"exit": {
 			name:        "exit",
@@ -48,6 +51,11 @@ func init() {
 			name:        "explore",
 			description: "Lists Pokemon in an area",
 			callback:    commandExplore,
+		},
+		"catch": {
+			name:        "catch",
+			description: "Attempts to catch a Pokemon",
+			callback:    commandCatch,
 		},
 	}
 }
@@ -120,6 +128,25 @@ func commandExplore(context *config) error {
 	fmt.Println("Found Pokemon:")
 	for _, name := range pokemons {
 		fmt.Println(" -", name)
+	}
+	context.param1 = ""
+	return nil
+}
+
+func commandCatch(context *config) error {
+	if context.param1 == "" {
+		return fmt.Errorf("catch requires a Pokemon name to catch")
+	}
+	pokemon, err := pokeapi.DescribePokemon(context.param1)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Throwing a Pokeball at", context.param1, "...")
+	if pokeapi.TryCatchPokemon(pokemon) {
+		fmt.Println(context.param1, "was caught!")
+		pokedex[pokemon.Name] = pokemon
+	} else {
+		fmt.Println(context.param1, "escaped!")
 	}
 	context.param1 = ""
 	return nil

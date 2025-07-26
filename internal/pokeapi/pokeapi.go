@@ -515,7 +515,7 @@ func DescribePokemon(name string) (PokemonInfo, error) {
 			keepInfo.Speed = stat.BaseStat
 		}
 	}
-	keepInfo.Types = make([]string, 1)
+	keepInfo.Types = make([]string, 0, 1)
 	for _, ptype := range info.Types {
 		keepInfo.Types = append(keepInfo.Types, ptype.Type.Name)
 	}
